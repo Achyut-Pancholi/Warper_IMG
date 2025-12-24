@@ -1,17 +1,11 @@
-# --- Streamlit ---
-streamlit==1.40.0
-streamlit-drawable-canvas==0.9.3
-
-# --- Core scientific stack ---
-numpy==1.26.4
-pandas==2.2.2
-Pillow==10.4.0
-
-# --- OpenCV (HEADLESS ONLY) ---
-opencv-python-headless==4.8.1.78
-opencv-python==0
-opencv-contrib-python==0
-
-# --- Paddle OCR ---
-paddlepaddle==3.2.2
-paddleocr==3.3.2
+flask
+flask-cors
+opencv-python-headless
+numpy
+pandas
+Pillow
+paddlepaddle
+paddleocr
+ultralytics
+streamlit
+streamlit-drawable-canvas
