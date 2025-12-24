@@ -136,6 +136,10 @@ def process_photo_mode():
             # Explicitly resize image for canvas to ensure alignment
             canvas_image = cv2.resize(image_rgb, (display_width, display_height))
             
+            # DEBUG: Check if image exists before canvas
+            st.write(f"Debug: Image Size: {display_width}x{display_height}")
+            st.image(canvas_image, caption="Debug Preview (If this works, CV2/PIL is fine)")
+            
             # Create a canvas component
             canvas_result = st_canvas(
                 fill_color="rgba(255, 165, 0, 0.3)",  # dim orange
