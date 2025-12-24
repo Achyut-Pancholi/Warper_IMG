@@ -1,14 +1,19 @@
 import cv2
 import numpy as np
-from paddleocr import PaddleOCR
-
-# Initialize PaddleOCR
-# Disable angle classifier as per recommendation and to avoid overhead on rectified images
-# Initialize PaddleOCR
-# Disable angle classifier as per recommendation and to avoid overhead on rectified images
-ocr_engine = PaddleOCR(use_angle_cls=False, lang='en') 
 import threading
+
+# Lazy load PaddleOCR to save memory on startup
+_ocr_engine = None
 ocr_lock = threading.Lock() 
+
+def get_ocr_engine():
+    global _ocr_engine
+    if _ocr_engine is None:
+        from paddleocr import PaddleOCR
+        # Initialize PaddleOCR
+        # Disable angle classifier as per recommendation and to avoid overhead on rectified images
+        _ocr_engine = PaddleOCR(use_angle_cls=False, lang='en')
+    return _ocr_engine 
 
 def order_points(pts):
     rect = np.zeros((4, 2), dtype = "float32")
@@ -124,7 +129,8 @@ def process_license_plate(image, points, width_scale=1.0, aspect_ratio=None, thr
         results_candidates = []
         with ocr_lock:
              # Standard OCR on Grayscale
-             res0 = ocr_engine.ocr(ocr_input)
+             engine = get_ocr_engine()
+             res0 = engine.ocr(ocr_input)
              if res0:
                  # Check if it's a list of lists or a list of dicts
                  # If dict (PP-Structure style): {'rec_texts': [], ...}

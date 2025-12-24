@@ -7,6 +7,7 @@ import os
 import tempfile
 from PIL import Image
 import pandas as pd
+import gc
 from streamlit_drawable_canvas import st_canvas
 
 # Add backend to path so we can import modules

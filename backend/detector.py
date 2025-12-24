@@ -1,10 +1,11 @@
-from ultralytics import YOLO
+# from ultralytics import YOLO # Lazy load
 import cv2
 import numpy as np
 
 class LicensePlateDetector:
     def __init__(self, model_path='yolov8n.pt'):
         try:
+            from ultralytics import YOLO
             self.model = YOLO(model_path)
         except Exception as e:
             print(f"Error loading YOLO model: {e}")
