@@ -138,14 +138,17 @@ def process_photo_mode():
             
             # DEBUG: Check if image exists before canvas
             st.write(f"Debug: Image Size: {display_width}x{display_height}")
-            st.image(canvas_image, caption="Debug Preview (If this works, CV2/PIL is fine)")
+            # st.image(canvas_image, caption="Debug Preview") # Comment out once verified
             
+            # Convert to PIL and ensure RGB
+            pil_image = Image.fromarray(canvas_image).convert("RGB")
+
             # Create a canvas component
             canvas_result = st_canvas(
                 fill_color="rgba(255, 165, 0, 0.3)",  # dim orange
                 stroke_width=3,
                 stroke_color="#FF4B4B",
-                background_image=Image.fromarray(canvas_image),
+                background_image=pil_image,
                 update_streamlit=True,
                 height=display_height,
                 width=display_width,
