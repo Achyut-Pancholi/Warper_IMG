@@ -1,0 +1,11 @@
+flask
+flask-cors
+opencv-python-headless
+numpy
+pandas
+Pillow
+paddlepaddle
+paddleocr
+ultralytics
+streamlit
+streamlit-drawable-canvas
