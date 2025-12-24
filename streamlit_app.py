@@ -230,6 +230,9 @@ def process_photo_mode():
                             kernel_size=kernel_size
                         )
                         
+                        # FORCE GARBAGE COLLECTION
+                        gc.collect()
+                        
                         # Display Results
                         st.subheader("B. Final Result")
                         
