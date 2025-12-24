@@ -139,7 +139,7 @@ def process_photo_mode():
             
             # DEBUG: Check if image exists before canvas
             st.write(f"Debug: Image Size: {display_width}x{display_height}")
-            # st.image(canvas_image, caption="Debug Preview") # Comment out once verified
+            st.image(canvas_image, caption="Reference View (Use this if Canvas is black)") 
             
             # Convert to PIL and ensure RGB
             pil_image = Image.fromarray(canvas_image).convert("RGB")
@@ -149,6 +149,7 @@ def process_photo_mode():
                 fill_color="rgba(255, 165, 0, 0.3)",  # dim orange
                 stroke_width=3,
                 stroke_color="#FF4B4B",
+                background_color="#eee", # Light gray background to see canvas bounds
                 background_image=pil_image,
                 update_streamlit=True,
                 height=display_height,
