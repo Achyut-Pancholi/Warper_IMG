@@ -147,23 +147,85 @@ def process_photo_mode():
             st.write(f"Debug: Image Size: {display_width}x{display_height}")
             st.image(canvas_image, caption="Reference View (Use this if Canvas is black)") 
             
-            # Convert to PIL and ensure RGB (Fix for ValueError with numpy arrays in st_canvas)
+            # Convert to PIL and ensure RGB
             pil_image = Image.fromarray(canvas_image).convert("RGB")
+            
+            # Encode image to Base64 for direct embedding
+            import io
+            import base64
+            buffered = io.BytesIO()
+            pil_image.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+            
+            # Construct Background Image Object (Fabric.js)
+            bg_image_obj = {
+                "type": "image",
+                "version": "4.4.0",
+                "originX": "left",
+                "originY": "top",
+                "left": 0,
+                "top": 0,
+                "width": display_width,
+                "height": display_height,
+                "fill": "rgb(0,0,0)",
+                "stroke": None,
+                "strokeWidth": 0,
+                "strokeDashArray": None,
+                "strokeLineCap": "butt",
+                "strokeDashOffset": 0,
+                "strokeLineJoin": "miter",
+                "strokeUniform": False,
+                "strokeMiterLimit": 4,
+                "scaleX": 1,
+                "scaleY": 1,
+                "angle": 0,
+                "flipX": False,
+                "flipY": False,
+                "opacity": 1,
+                "shadow": None,
+                "visible": True,
+                "backgroundColor": "",
+                "fillRule": "nonzero",
+                "paintFirst": "fill",
+                "globalCompositeOperation": "source-over",
+                "skewX": 0,
+                "skewY": 0,
+                "cropX": 0,
+                "cropY": 0,
+                "src": f"data:image/png;base64,{img_str}",
+                "crossOrigin": None,
+                "filters": [],
+                "selectable": False,
+                "evented": False # Important!
+            }
+
+            # Prepare Initial Drawing JSON
+            # If we have existing points (from auto-detect), we use them, otherwise empty
+            base_drawing = st.session_state.get('initial_drawing')
+            if base_drawing is None:
+                base_drawing = {"version": "4.4.0", "objects": []}
+            
+            # Deep copy to allow modification without affecting session state directly if needed
+            import copy
+            final_drawing = copy.deepcopy(base_drawing)
+            
+            # Prepend background image so it is at the bottom
+            final_drawing["objects"].insert(0, bg_image_obj)
 
             # Create a canvas component
             canvas_result = st_canvas(
                 fill_color="rgba(255, 165, 0, 0.3)",  # dim orange
                 stroke_width=3,
                 stroke_color="#FF4B4B",
-                background_color="#FFFFFF", # White background to diagnose transparency
-                background_image=pil_image,
+                background_color="#FFFFFF", # White background
+                background_image=None, # DISABLE standard background loading
                 update_streamlit=True,
                 height=display_height,
                 width=display_width,
                 drawing_mode="point",
                 point_display_radius=5,
                 key=st.session_state['canvas_key'],
-                initial_drawing=st.session_state['initial_drawing'],
+                initial_drawing=final_drawing, # Use our constructed JSON
             )
             
             # Get points
