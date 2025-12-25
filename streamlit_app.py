@@ -111,53 +111,37 @@ def process_photo_mode():
     # Initialize Session State
     if 'canvas_key' not in st.session_state:
         st.session_state['canvas_key'] = "canvas_1"
-    if 'initial_drawing' not in st.session_state:
-        st.session_state['initial_drawing'] = None
+    if 'canvas_init_state' not in st.session_state: # New state for cached initial drawing
+        st.session_state['canvas_init_state'] = {"version": "4.4.0", "objects": []}
 
     if uploaded_file is not None:
-        # Check against previous file to force canvas update (Fix for black background)
+        # Check against previous file
         file_id = f"{uploaded_file.name}-{uploaded_file.size}"
-        if 'last_uploaded_file' not in st.session_state or st.session_state['last_uploaded_file'] != file_id:
-            st.session_state['last_uploaded_file'] = file_id
-            st.session_state['canvas_key'] = f"canvas_{file_id}"
-            st.session_state['initial_drawing'] = None
+        
+        # Dimensions and Image processing
         # Convert file to opencv image
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         image = cv2.imdecode(file_bytes, 1)
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
-        # Dimensions
         h, w = image.shape[:2]
-        
-        with col1:
-            st.markdown("### 1. Select 4 Points")
-            st.info("Click 4 corners of the license plate in order: Top-Left, Top-Right, Bottom-Right, Bottom-Left.")
+        display_width = 600
+        scale_factor = display_width / w
+        display_height = int(h * scale_factor)
+        canvas_image = cv2.resize(image_rgb, (display_width, display_height))
+
+        # Initialize or Update Canvas State ONLY on new file
+        if 'last_uploaded_file' not in st.session_state or st.session_state['last_uploaded_file'] != file_id:
+            st.session_state['last_uploaded_file'] = file_id
+            st.session_state['canvas_key'] = f"canvas_{file_id}"
             
-            # Canvas for clicking
-            # Resize for canvas if too big
-            # Resize for canvas
-            display_width = 600
-            scale_factor = display_width / w
-            display_height = int(h * scale_factor)
-            
-            # Explicitly resize image for canvas to ensure alignment
-            canvas_image = cv2.resize(image_rgb, (display_width, display_height))
-            
-            # DEBUG: Check if image exists before canvas
-            st.write(f"Debug: Image Size: {display_width}x{display_height}")
-            st.image(canvas_image, caption="Reference View (Use this if Canvas is black)") 
-            
-            # Convert to PIL and ensure RGB
+            # --- Base64 Background Generation (Once per file) ---
             pil_image = Image.fromarray(canvas_image).convert("RGB")
-            
-            # Encode image to Base64 for direct embedding
             import io
             import base64
             buffered = io.BytesIO()
             pil_image.save(buffered, format="PNG")
             img_str = base64.b64encode(buffered.getvalue()).decode()
             
-            # Construct Background Image Object (Fabric.js)
             bg_image_obj = {
                 "type": "image",
                 "version": "4.4.0",
@@ -168,64 +152,34 @@ def process_photo_mode():
                 "width": display_width,
                 "height": display_height,
                 "fill": "rgb(0,0,0)",
-                "stroke": None,
-                "strokeWidth": 0,
-                "strokeDashArray": None,
-                "strokeLineCap": "butt",
-                "strokeDashOffset": 0,
-                "strokeLineJoin": "miter",
-                "strokeUniform": False,
-                "strokeMiterLimit": 4,
-                "scaleX": 1,
-                "scaleY": 1,
-                "angle": 0,
-                "flipX": False,
-                "flipY": False,
-                "opacity": 1,
-                "shadow": None,
-                "visible": True,
-                "backgroundColor": "",
-                "fillRule": "nonzero",
-                "paintFirst": "fill",
-                "globalCompositeOperation": "source-over",
-                "skewX": 0,
-                "skewY": 0,
-                "cropX": 0,
-                "cropY": 0,
                 "src": f"data:image/png;base64,{img_str}",
-                "crossOrigin": None,
-                "filters": [],
                 "selectable": False,
-                "evented": False # Important!
+                "evented": False,
+                "crossOrigin": None
             }
-
-            # Prepare Initial Drawing JSON
-            # If we have existing points (from auto-detect), we use them, otherwise empty
-            base_drawing = st.session_state.get('initial_drawing')
-            if base_drawing is None:
-                base_drawing = {"version": "4.4.0", "objects": []}
+            # Cache the initialization JSON
+            st.session_state['canvas_init_state'] = {"version": "4.4.0", "objects": [bg_image_obj]}
+        
+        
+        with col1:
+            st.markdown("### 1. Select 4 Points")
+            st.info("Click 4 corners of the license plate in order: Top-Left, Top-Right, Bottom-Right, Bottom-Left.")
             
-            # Deep copy to allow modification without affecting session state directly if needed
-            import copy
-            final_drawing = copy.deepcopy(base_drawing)
-            
-            # Prepend background image so it is at the bottom
-            final_drawing["objects"].insert(0, bg_image_obj)
-
             # Create a canvas component
+            # Use cached state to prevent resetting on every rerun
             canvas_result = st_canvas(
-                fill_color="rgba(255, 165, 0, 0.3)",  # dim orange
-                stroke_width=3,
-                stroke_color="#FF4B4B",
-                background_color="#FFFFFF", # White background
-                background_image=None, # DISABLE standard background loading
+                fill_color="#39FF14",  # Neon Green
+                stroke_width=2,
+                stroke_color="#000000", # Black
+                background_color="#FFFFFF",
+                background_image=None,
                 update_streamlit=True,
                 height=display_height,
                 width=display_width,
                 drawing_mode="point",
-                point_display_radius=5,
+                point_display_radius=6, # Slightly larger
                 key=st.session_state['canvas_key'],
-                initial_drawing=final_drawing, # Use our constructed JSON
+                initial_drawing=st.session_state['canvas_init_state'],
             )
             
             # Get points
@@ -241,33 +195,37 @@ def process_photo_mode():
             
             st.write(f"selected points: {len(points)}")
             
-            # Auto-detect button fallback
+            # Auto-detect button logic
             if st.button("🪄 Auto-Detect Points (Beta)"):
                  detected_points = detector.detect(image)
                  if detected_points:
                      st.success("Plate detected by AI!")
-                     # Update session state to force canvas redraw with new points
+                     # Force a key update to reload canvas
                      import uuid
                      st.session_state['canvas_key'] = str(uuid.uuid4())
                      
-                     # Construct initial drawing JSON for canvas
-                     # Canvas expects objects list
-                     objects = []
+                     # Reconstruct Objects: Background + New Points
+                     # We must preserve the background!
+                     current_init = st.session_state.get('canvas_init_state', {"objects": []})
+                     bg_objs = [obj for obj in current_init.get("objects", []) if obj.get("type") == "image"]
+                     
+                     new_objects = list(bg_objs) # Start with background
+                     
                      for p in detected_points:
-                         # Scale to canvas
-                         objects.append({
+                         new_objects.append({
                              "type": "circle",
                              "left": p[0] * scale_factor,
                              "top": p[1] * scale_factor,
                              "width": 10,
                              "height": 10,
-                             "fill": "blue",
-                             "stroke": "#FF4B4B",
-                             "strokeWidth": 3
+                             "fill": "#39FF14", # Neon Green
+                             "stroke": "#000000", # Black
+                             "strokeWidth": 2,
+                             "radius": 5
                          })
                      
-                     st.session_state['initial_drawing'] = {"version": "4.4.0", "objects": objects}
-                     # Rerun to show update
+                     # Update Cache
+                     st.session_state['canvas_init_state'] = {"version": "4.4.0", "objects": new_objects}
                      st.rerun()
                  else:
                      st.warning("AI could not find a plate. Please click manually.")
