@@ -147,8 +147,8 @@ def process_photo_mode():
             st.write(f"Debug: Image Size: {display_width}x{display_height}")
             st.image(canvas_image, caption="Reference View (Use this if Canvas is black)") 
             
-            # Ensure contiguous for Streamlit serialization safety
-            canvas_image_safe = np.ascontiguousarray(canvas_image)
+            # Convert to PIL and ensure RGB (Fix for ValueError with numpy arrays in st_canvas)
+            pil_image = Image.fromarray(canvas_image).convert("RGB")
 
             # Create a canvas component
             canvas_result = st_canvas(
@@ -156,7 +156,7 @@ def process_photo_mode():
                 stroke_width=3,
                 stroke_color="#FF4B4B",
                 background_color="#FFFFFF", # White background to diagnose transparency
-                background_image=canvas_image_safe, # Pass numpy array directly
+                background_image=pil_image,
                 update_streamlit=True,
                 height=display_height,
                 width=display_width,
