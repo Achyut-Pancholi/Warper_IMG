@@ -115,6 +115,12 @@ def process_photo_mode():
         st.session_state['initial_drawing'] = None
 
     if uploaded_file is not None:
+        # Check against previous file to force canvas update (Fix for black background)
+        file_id = f"{uploaded_file.name}-{uploaded_file.size}"
+        if 'last_uploaded_file' not in st.session_state or st.session_state['last_uploaded_file'] != file_id:
+            st.session_state['last_uploaded_file'] = file_id
+            st.session_state['canvas_key'] = f"canvas_{file_id}"
+            st.session_state['initial_drawing'] = None
         # Convert file to opencv image
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         image = cv2.imdecode(file_bytes, 1)
